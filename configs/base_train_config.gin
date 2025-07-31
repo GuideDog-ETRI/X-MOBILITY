@@ -31,14 +31,14 @@ XMobilityTrainer.lr=1e-5
 XMobilityTrainer.scheduler_pct_start=0.2
 
 # Dataloader
-XMobilityIsaacSimDataModule.batch_size=4
+XMobilityIsaacSimDataModule.batch_size=2
 XMobilityIsaacSimDataModule.sequence_length=%SEQUENCE_LENGTH
 XMobilityIsaacSimDataModule.num_workers=4
 XMobilityIsaacSimDataModule.is_gwm_pretrain=%IS_GWM_PRETRAIN
 XMobilityIsaacSimDataModule.enable_semantic=%ENABLE_SEMANTIC
 XMobilityIsaacSimDataModule.enable_rgb_stylegan=%ENABLE_RGB_STYLEGAN
 XMobilityIsaacSimDataModule.precomputed_semantic_label=True
-XMobilityIsaacSimDataModule.use_lazy_loading=False
+XMobilityIsaacSimDataModule.use_lazy_loading=True
 
 #Encoders
 SpeedEncoder.out_channels=32

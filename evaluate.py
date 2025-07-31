@@ -1,24 +1,8 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import numpy as np
 
 import gin
 import pytorch_lightning as pl
-import wandb
-from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from arg_parser import parse_arguments, TaskMode
 from model.dataset.isaac_sim_dataset import XMobilityIsaacSimDataModule
@@ -34,19 +18,20 @@ def evaluate_observation(dataset_path, checkpoint_path, wandb_entity_name,
     model = XMobilityTrainer.load_from_checkpoint(checkpoint_path)
     model.eval()
 
-    wandb_logger = WandbLogger(entity=wandb_entity_name,
-                               project=wandb_project_name,
-                               name=wandb_run_name,
-                               group="DDP",
-                               log_model=True)
+    # TensorBoardLogger 생성 (version에 run_name 활용)
+    tb_logger = TensorBoardLogger(
+        save_dir="logs",
+        name="observation_evaluation",
+        version=wandb_run_name
+    )
 
     trainer = pl.Trainer(num_nodes=num_gpus,
                          precision=precision,
-                         logger=wandb_logger,
+                         logger=tb_logger,
                          strategy='ddp')
     trainer.test(model, datamodule=data)
 
-    wandb.finish()
+    # wandb.finish() 제거
 
 
 @gin.configurable
@@ -65,18 +50,19 @@ def evaluate_prediction(dataset_path,
                                                   strict=False)
     model.eval()
 
-    wandb_logger = WandbLogger(entity=wandb_entity_name,
-                               project=wandb_project_name,
-                               name=wandb_run_name,
-                               group="DDP",
-                               log_model=False)
+    # TensorBoardLogger 생성 (version에 run_name 활용)
+    tb_logger = TensorBoardLogger(
+        save_dir="logs",
+        name="prediction_evaluation",
+        version=wandb_run_name
+    )
 
-    evaulator = PredictionEvaulator(model, data_module, wandb_logger,
+    evaulator = PredictionEvaulator(model, data_module, tb_logger,
                                     max_history_length, max_future_length,
                                     use_trained_policy)
     evaulator.compute()
 
-    wandb.finish()
+    # wandb.finish() 제거
 
 
 def main():
@@ -89,7 +75,7 @@ def main():
         # Run the evaluation loop.
         evaluate_observation(args.dataset_path, args.checkpoint_path,
                              args.wandb_entity_name, args.wandb_project_name,
-                             args.wandb_run_name)
+                             args.wandb_run_name, args.num_gpus, args.precision)
     elif args.eval_target == 'imagination':
         evaluate_prediction(args.dataset_path, args.checkpoint_path,
                             args.wandb_entity_name, args.wandb_project_name,
